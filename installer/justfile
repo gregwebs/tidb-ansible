@@ -1,0 +1,61 @@
+bootstrap: start run
+
+setup:
+	#!/bin/bash
+	set -euo pipefail
+
+	echo "checking for kubectl"
+	kubectl --help 1>/dev/null || (echo "download kubectl" && exit 1)
+
+
+start: setup
+	#!/bin/bash
+	set -euo pipefail
+
+	echo "starting minikube"
+	if [[ $(uname) == Linux ]] ; then
+	  sudo CHANGE_MINIKUBE_NONE_USER=true $(which minikube) start --vm-driver none --apiserver-ips 127.0.0.1 --apiserver-name localhos
+	  echo "change" ~/.kube/config to use localhost as the server
+	else
+	  sudo $(which minikube) start
+	fi
+
+	echo "on to automated docker setup"
+	./dockerfiles/build-all.sh
+
+
+shutdown: stop
+	sudo $(which minikube) stop
+
+
+stop:
+	#!/bin/bash
+	set -euo pipefail
+	for yml in kube/**/*.yml ; do
+		kubectl delete -f "$yml" || echo "ingoring error when deleting $yml"
+	done
+
+
+run:
+	#!/bin/bash
+	set -euo pipefail
+	for yml in kube/**/*.yml ; do
+		kubectl create -f "$yml" || echo "ignoring error when creating $yml"
+	done
+	sudo $(which minikube) dashboard
+
+
+rerun: stop run
+	#for yml in kube/network/*.yml ; do
+	#	kubectl delete -f "$yml" || echo "$yml not created yet"
+	#	kubectl create -f "$yml"
+	#done
+
+
+debug:
+	# kubectl logs -lapp=tikv -lapp=tidb -lapp=pd
+	kubectl describe statefulsets
+	kubectl get pods
+
+
+# vim: set ft=make :

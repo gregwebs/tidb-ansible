@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")/../.."
+docker run --rm -it --net=host -v "$PWD:$PWD" -w "$PWD" \
+    -v "$HOME/.minikube:$HOME/.minikube" -v "$HOME/.kube:/root/.kube" \
+    -v /usr/local/bin/kubectl:/usr/local/bin/kubectl \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v /tmp:/tmp -v "$PWD/.ansible:/root/.ansible" \
+    tidb/installer-ansible:2.4 "$@"
