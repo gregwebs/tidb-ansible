@@ -1,0 +1,111 @@
+bootstrap: kube-up run-services ansible-install
+
+setup:
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	echo "checking for kubectl"
+	kubectl --help 1>/dev/null || (echo "download kubectl" && exit 1)
+
+	# echo "checking for telepresence"
+	# telepresence --help 1>/dev/null || (echo "download telepresence" && exit 1)
+
+
+kube-up: setup
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	echo "starting minikube"
+	if [[ $(uname) == Linux ]] ; then
+	  # sudo CHANGE_MINIKUBE_NONE_USER=true $(which minikube) start --vm-driver none  --apiserver-ips 127.0.0.1 --apiserver-name localhost
+	  # echo "change" ~/.kube/config to use localhost as the server
+	  sudo $(which minikube) start --vm-driver kvm2
+	else
+	  sudo $(which minikube) start
+	fi
+
+	echo "building ansible image"
+	./dockerfiles/ansible/build.sh
+
+
+ansible-install:
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	cd ..
+	echo "checking for tidb user"
+	if ! output=$(./installer/bin/ansible ansible -i inventory.ini all -m shell -a whoami) ; then
+	  if grep "UNREACHABLE" <(echo "$output") 1>/dev/null ; then
+	    sleep 10
+		if ! output=$(./installer/bin/ansible ansible -i inventory.ini all -m shell -a whoami) ; then
+		  echo "$output" && exit 1
+		fi
+	  fi
+	fi
+	( grep tidb <(echo "$output") 1>/dev/null
+	  grep -v root <(echo "$output") 1>/dev/null
+	) || (echo "$output" && exit 1)
+	echo "checking for root user"
+	if ! output=$(./installer/bin/ansible ansible -i inventory.ini all -m shell -a whoami -b) ; then
+	  echo "$output" && exit 1
+	fi
+	( grep root <(echo "$output") 1>/dev/null
+	  grep -v tidb <(echo "$output") 1>/dev/null
+	) || (echo "$output" && exit 1)
+
+	# ./installer/bin/ansible ansible-playbook local_prepare.yml
+	./installer/bin/ansible ansible-playbook bootstrap.yml
+	./installer/bin/ansible ansible-playbook deploy.yml
+	./installer/bin/ansible ansible-playbook start.yml
+
+kube-down: stop-services
+	sudo $(which minikube) stop
+
+
+stop-services:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	for yml in kube/**/*.yml ; do
+		kubectl delete -f "$yml" || echo "ingoring error when deleting $yml"
+	done
+
+
+run-services:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	eval $(sudo $(which minikube) docker-env)
+	./dockerfiles/centos/build.sh
+
+	for yml in kube/**/*.yml ; do
+		kubectl create -f "$yml" || echo "ignoring error when creating $yml"
+	done
+	sudo $(which minikube) dashboard
+
+
+rerun-services: stop-services run-services
+
+
+debug:
+	# kubectl logs -lapp=tikv -lapp=tidb -lapp=pd
+	kubectl describe statefulsets
+	kubectl get pods
+
+
+helm-install:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	eval $(sudo $(which minikube) docker-env)
+
+	echo "checking for helm"
+	helm --help 1>/dev/null || (echo "download helm" && exit 1)
+
+	helm init
+	helm repo add banzaicloud-incubator http://kubernetes-charts-incubator.banzaicloud.com
+	if ! helm install --namespace tidb banzaicloud-incubator/tidb ; then
+	  sleep 10
+	  helm install --namespace tidb banzaicloud-incubator/tidb
+	fi
+
+
+
+# vim: set ft=make :

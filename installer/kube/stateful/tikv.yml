@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tikv
+  labels:
+    app: tikv
+spec:
+  ports:
+  - port: 20160
+    name: client
+  clusterIP: None
+  selector:
+    app: tikv
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tikv
+spec:
+  selector:
+    matchLabels:
+      app: tikv # has to match .spec.template.metadata.labels
+  serviceName: "tikv"
+  replicas: 3 # by default is 1
+  template:
+    metadata:
+      labels:
+        app: tikv # has to match .spec.selector.matchLabels
+        policy: egress-all
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: tikv
+        image: tidb/installer-centos:7
+        imagePullPolicy: "IfNotPresent"
+        command: ["/usr/sbin/init"]
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 20160
+          name: client
+        volumeMounts:
+        - name: data1
+          mountPath: /data1
+      volumes:
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
+  volumeClaimTemplates:
+  - metadata:
+      name: data1
+    spec:
+      accessModes: [ "ReadWriteMany" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 1Gi

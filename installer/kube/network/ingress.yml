@@ -1,0 +1,34 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-all
+spec:
+  rules:
+  - host: tidb.local
+    http:
+      paths:
+      - path: /status
+        backend:
+          serviceName: tidb
+          servicePort: 10080
+  - host: tikv.local
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: tikv
+          servicePort: 20160
+  - host: pd.local
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: pd
+          servicePort: 2379
+  - host: monitor.local
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: monitor
+          servicePort: 3000

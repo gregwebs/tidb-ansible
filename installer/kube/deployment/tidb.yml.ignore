@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tidb
+  labels:
+    app: tidb
+spec:
+  ports:
+  ports:
+  - port: 4000
+    name: mysql
+  - port: 10080
+    name: status
+  selector:
+    app: tidb
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tidb-deployment
+  labels:
+    app: tidb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tidb
+  template:
+    metadata:
+      labels:
+        app: tidb
+    spec:
+      containers:
+      - name: tidb
+        image: tidb/installer-centos:7
+        imagePullPolicy: "IfNotPresent"
+        command: ["/usr/sbin/init"]
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 4000
+          name: mysql
+        - containerPort: 10080
+          name: status
+      volumes:
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
