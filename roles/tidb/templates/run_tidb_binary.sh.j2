@@ -6,15 +6,14 @@ ulimit -n 1000000
 # WARNING: This file was auto-generated. Do not edit!
 #          All your edit might be overwritten!
 DEPLOY_DIR={{ deploy_dir }}
-
 cd "${DEPLOY_DIR}" || exit 1
 
 {% set all_pd = [] -%}
 {% set pd_hosts = groups.pd_servers %}
 {% for host in pd_hosts -%}
-  {% set pd_ip = hostvars[host].ansible_host | default(hostvars[host].inventory_hostname) -%}
+  {% set pd_domain = hostvars[host].domain -%}
   {% set pd_port = hostvars[host].pd_client_port -%}
-  {% set _ = all_pd.append("%s:%s" % (pd_ip, pd_port)) -%}
+  {% set _ = all_pd.append("%s:%s" % (pd_domain, pd_port)) -%}
 {% endfor -%}
 
 exec bin/tidb-server \

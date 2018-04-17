@@ -1,11 +1,12 @@
 #!/bin/bash
 set -e
 ulimit -n 1000000
+set -x
 
 DEPLOY_DIR={{ deploy_dir }}
 cd "${DEPLOY_DIR}" || exit 1
 
-{% set my_ip = hostvars[inventory_hostname].ansible_host | default(hostvars[inventory_hostname].inventory_hostname) -%}
+{% set monitor_domain = hostvars[inventory_hostname].domain -%}
 
 # WARNING: This file was auto-generated. Do not edit!
 #          All your edit might be overwritten!
@@ -15,7 +16,7 @@ exec 2>&1
 exec bin/prometheus \
     --config.file="{{ deploy_dir }}/conf/prometheus.yml" \
     --web.listen-address=":{{ prometheus_port }}" \
-    --web.external-url="http://{{ my_ip }}:{{ prometheus_port }}/" \
+    --web.external-url="http://{{ monitor_domain }}:{{ prometheus_port }}/" \
     --web.enable-admin-api \
     --log.level="{{ prometheus_log_level }}" \
     --storage.tsdb.path="{{ prometheus_data_dir }}" \

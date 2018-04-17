@@ -149,7 +149,7 @@
       until: result.status is defined and result.status == 200
       retries: 10
       delay: 5
-      when: enable_tls|default(false) 
+      when: enable_tls|default(false)
 
 
 - hosts: tikv_servers
@@ -279,7 +279,7 @@
         host={{ ansible_host }} port={{ grafana_collector_port }} state=present
 
     - set_fact:
-        grafana_host: "{{ ansible_host }}"
+        grafana_host: "{{ domain }}"
 
     - include_tasks: create_grafana_api_keys.yml
 

@@ -31,11 +31,11 @@
       {{ deploy_user }}        soft        stack         10240
   when: tuning_kernel_parameters
 
-- name: swap - disable swap
-  shell: "([ $(swapon -s | wc -l) -ge 1 ] && (swapoff -a && echo disable)) || echo already"
-  ignore_errors: yes
-  register: swapoff_result
-  changed_when: "swapoff_result.stdout.strip() == 'disable'"
+  #- name: swap - disable swap
+  #shell: "([ $(swapon -s | wc -l) -ge 1 ] && (swapoff -a && echo disable)) || echo already"
+  #ignore_errors: yes
+  #register: swapoff_result
+  #changed_when: "swapoff_result.stdout.strip() == 'disable'"
 
 - name: create group
   group: name={{ deploy_user }}
@@ -54,9 +54,9 @@
   file: path="{{ raftdb_path }}" state=directory mode=0755 owner={{ deploy_user }} group={{ deploy_user }}
   when: raftdb_path is defined
 
-- name: set timezone to {{ timezone }}
-  timezone: name={{ timezone }}
-  when: set_timezone
+#- name: set timezone to {{ timezone }}
+#  timezone: name={{ timezone }}
+#  when: set_timezone
 
 - name: set hostname if hostname is not distinguishable
   hostname: name=ip-{{ ansible_default_ipv4.address | replace(".","-") }}
