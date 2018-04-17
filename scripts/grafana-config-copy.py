@@ -83,12 +83,9 @@ def fill_dashboard_with_dest_config(dashboard, dest, type_='node'):
 
     return dashboard
 
-def import_dashboard(api_url, api_key, dashboard):
-    payload = {'dashboard': dashboard,
-               'overwrite': True}
-    headers = {'Authorization': "Bearer {}".format(api_key),
-               'Content-Type': 'application/json'}
-    req = urllib2.Request(api_url + 'api/dashboards/db',
+def json_request(url, headers, payload):
+    print("sending request to " + url)
+    req = urllib2.Request(url,
                           headers=headers,
                           data=json.dumps(payload))
     try:
@@ -99,22 +96,22 @@ def import_dashboard(api_url, api_key, dashboard):
         data = json.load(error)
         return data
 
+
+def import_dashboard(api_url, api_key, dashboard):
+    payload = {'dashboard': dashboard,
+               'overwrite': True}
+    headers = {'Authorization': "Bearer {}".format(api_key),
+               'Content-Type': 'application/json'}
+    json_request(api_url + 'api/dashboards/db', headers, payload)
+
+
 def import_dashboard_via_user_pass(api_url, user, password, dashboard):
     payload = {'dashboard': dashboard,
                'overwrite': True}
     auth_string = base64.b64encode('%s:%s' % (user, password))
     headers = {'Authorization': "Basic {}".format(auth_string),
                'Content-Type': 'application/json'}
-    req = urllib2.Request(api_url + 'api/dashboards/db',
-                          headers=headers,
-                          data=json.dumps(payload))
-    try:
-        resp = urllib2.urlopen(req)
-        data = json.load(resp)
-        return data
-    except urllib2.HTTPError, error:
-        data = json.load(error)
-        return data
+    json_request(api_url + 'api/dashboards/db', headers, payload)
 
 
 if __name__ == '__main__':
