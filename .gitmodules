@@ -1,0 +1,3 @@
+[submodule "installer/dockerfiles/ansible/ansible"]
+	path = installer/dockerfiles/ansible/ansible
+	url = git@github.com:gregwebs/ansible.git
