@@ -111,3 +111,11 @@ pub fn tail(file: &str) -> Result<String, std::io::Error> {
             .spawn()?.wait_with_output()?;
     Ok(String::from_utf8_lossy(output.stdout.as_slice()).to_string())
 }
+
+pub fn mysql_connect() -> Result<String, std::io::Error> {
+    let output = Command::new("just")
+        .arg("mysql-connect")
+        .stdout(std::process::Stdio::piped())
+        .output()?;
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}

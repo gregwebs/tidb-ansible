@@ -11,7 +11,7 @@ import Html.Keyed as Keyed
 import Html.Events
 import Json.Decode
 import Json.Decode as Decode
-import Json.Decode exposing (int, string, float, bool, nullable, Decoder, map4, map2, list, field)
+import Json.Decode exposing (int, string, float, bool, nullable, Decoder, map4, map3, list, field)
 import Json.Encode as Encode
 
 import Material
@@ -37,12 +37,14 @@ type alias RunningCommand =
 
 type alias ServerState =
   { error : String
+  , mysql_connect : String
   , command : Maybe RunningCommand
   }
 
 default_server_state : ServerState
 default_server_state =
   { error= ""
+  , mysql_connect = ""
   , command = Nothing
   }
 
@@ -56,8 +58,9 @@ decodeRunningCommand =
 
 decodeServerState : Decoder ServerState
 decodeServerState =
-  map2 ServerState
+  map3 ServerState
     (field "error" string)
+    (field "mysql_connect" string)
     (field "running" <| nullable decodeRunningCommand)
 
 type ReadyState
@@ -223,7 +226,7 @@ update msg model =
         ({model | token = token}, Cmd.none)
 
     InstallCommand name ->
-      (model, do_command model name)
+      (model, do_just_command model name)
 
     Mdl msg_ ->
         Material.update Mdl msg_ model
@@ -237,15 +240,22 @@ update msg model =
         (model, Cmd.none)
 
     UIMsg msg ->
-        ({ model | ui_state = update_ui_state msg model.ui_state }, Cmd.none)
+        let (ui_state, cmd) = update_ui_state msg model
+        in
+            ({ model | ui_state = ui_state }, cmd)
 
 
 -- | UIState does not generate commands
-update_ui_state : UIMsg -> UIState -> UIState
+update_ui_state : UIMsg -> Model -> (UIState, Cmd Msg)
 update_ui_state msg model =
   case msg of
     SelectTab num ->
-        { model | selected_tab = num }
+        let cmd = case num of
+          1 -> do_command model "mysql-connect"
+          _ -> Cmd.none
+        in
+          let ui_state = model.ui_state
+          in ({ ui_state | selected_tab = num }, cmd)
 
 
 type alias Mdl =
@@ -278,10 +288,32 @@ view model =
         case model.ui_state.selected_tab of
           0 ->
             viewInstallTab model
+          1 ->
+            viewClusterTab model
           _ ->
             grid [] []
       ]
     }
+
+
+viewClusterTab : Model -> Html Msg
+viewClusterTab model =
+  grid []
+    [ cell [ size All 1 ] []
+    , cell [ size All 10
+      , Elevation.e6
+      , css "padding-left" "30px"
+      , css "padding-right" "30px"
+      ]
+      [ Card.view
+          [ css "width" "100%"
+          ]
+          [ Card.title [] [ Card.head [] [text "MySQL connect"] ]
+          , Card.text [ ] [ text model.server_state.mysql_connect ]
+          ]
+      ]
+    ]
+
 
 viewInstallTab : Model -> Html Msg
 viewInstallTab model =
@@ -374,12 +406,12 @@ isEnter code =
       Json.Decode.fail "not Enter"
 -}
 
-do_toggle_record_state : Model -> Bool -> Cmd Msg
-do_toggle_record_state model checked =
-  send_message model "set_is_recording" (Encode.bool checked)
-
 do_command : Model -> String -> Cmd Msg
-do_command model value =
+do_command model command =
+  send_message model command (Encode.string "")
+
+do_just_command : Model -> String -> Cmd Msg
+do_just_command model value =
   send_message model "just" (Encode.string value)
 
 callbackEncoded : String -> String -> Encode.Value -> Encode.Value
