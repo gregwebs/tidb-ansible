@@ -1,3 +1,20 @@
+# install just
+# just bui
+
+bui:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	cd bui
+	./bin/cargo check
+	./bin/cargo build
+	$(find target -name tidb-installer)
+
+elm-watch:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	cd bui/frontend_elm
+	watch -c -n 1 make
+
 bootstrap: kube-resources ansible-install
 
 setup:
@@ -136,5 +153,9 @@ mysql-connect:
 	port="$(kubectl get svc ingress-nginx -o json | jq '.spec.ports[] | select(.name=="mysql") | .nodePort')"
 	echo mysql --host "$(minikube ip)" --port "$port"
 
+kubectl-get ARGS='':
+	#!/usr/bin/env bash
+	set -euo pipefail
+	kubectl get -o json {{ARGS}}
 
 # vim: set ft=make :

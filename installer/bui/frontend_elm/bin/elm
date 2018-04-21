@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+
+USER_ARGS=
+if [[ $( uname ) == "Linux" ]] ; then
+USER_ARGS="-v /etc/group:/etc/group:ro -v /etc/passwd:/etc/passwd:ro -u $( id -u $USER ):$( id -g $USER )"
+fi
+
+# -p 8000:8000 \
+docker run -it --rm \
+  -v "$(pwd):/code" -w "/code" \
+  -e "HOME=/tmp" \
+  $USER_ARGS \
+  codesimple/elm:0.18 "$@"

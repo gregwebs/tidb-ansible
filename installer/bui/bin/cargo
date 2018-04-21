@@ -1,0 +1,28 @@
+#!/bin/bash -eu
+
+set -eu
+set -o pipefail
+
+# Go back to project root
+cd "$( dirname "$0" )/../"
+
+VERSION=1.25.0-stable-2018-03-25
+
+# Don't use root in the container, use the same user as the host
+USER_ARGS="-u $( id -u $USER ):$( id -g $USER )"
+if [[ $( uname ) == "Linux" ]] ; then
+  USER_ARGS="$USER_ARGS -v /etc/group:/etc/group:ro -v /etc/passwd:/etc/passwd:ro"
+else
+  uid="$( id -u $USER )"
+  user="$(whoami)"
+  echo "${user}:x:${uid}:" > /tmp/group
+  echo "${user}:x:${uid}:${uid}:Docker Master,,,:/home/${user}:/bin/sh" > /tmp/passwd
+  USER_ARGS="$USER_ARGS -v /tmp/group:/etc/group:ro -v /tmp/passwd:/etc/passwd:ro"
+fi
+
+docker run -it --rm \
+    $USER_ARGS \
+    -v "$(dirname "$PWD"):$(dirname "$PWD")" -w "$PWD" \
+    -v "$PWD/.cargo:/home/$(whoami)/.cargo" \
+    -e RUST_BACKTRACE=1 \
+    "clux/muslrust:$VERSION" cargo "$@"

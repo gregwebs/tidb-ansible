@@ -1,0 +1,7 @@
+.env
+/out.log
+/stderr.log
+/exit_code.txt
+/cmd.txt
+/target
+.cargo
