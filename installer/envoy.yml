@@ -1,0 +1,51 @@
+static_resources:
+  listeners:
+  - address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 7000
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          codec_type: auto
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: backend
+              domains:
+              - "*"
+              routes:
+              - match:
+                  prefix: "/callback"
+                route:
+                  cluster: backend
+              - match:
+                  prefix: "/events"
+                route:
+                  cluster: backend
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: frontend
+          http_filters:
+          - name: envoy.router
+            config: {}
+  clusters:
+  - name: backend
+    connect_timeout: 1s
+    type: strict_dns
+    lb_policy: round_robin
+    hosts:
+    - socket_address:
+        address: localhost
+        port_value: 3410
+  - name: frontend
+    connect_timeout: 1s
+    type: strict_dns
+    lb_policy: round_robin
+    hosts:
+    - socket_address:
+        address: localhost
+        port_value: 4589

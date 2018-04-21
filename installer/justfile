@@ -15,7 +15,7 @@ elm-watch:
 	cd bui/frontend_elm
 	watch -c -n 1 make
 
-bootstrap: kube-resources ansible-install
+kube-install: kube-resources ansible-install
 
 setup:
 	#!/usr/bin/env bash
