@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 cd "$(dirname "$0")/../.."
-docker run --rm -it --net=host -v "$PWD:$PWD" -w "$PWD" \
+DOCKER_INPUT_ARGS="${DOCKER_INPUT_ARGS:-"-i"}"
+docker run --rm $DOCKER_INPUT_ARGS --net=host -v "$PWD:$PWD" -w "$PWD" \
     -v "$HOME/.minikube:$HOME/.minikube" -v "$HOME/.kube:/root/.kube" \
     -v /usr/local/bin/kubectl:/usr/local/bin/kubectl \
     -v /var/run/docker.sock:/var/run/docker.sock \

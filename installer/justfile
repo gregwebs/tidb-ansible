@@ -1,34 +1,38 @@
-bootstrap: kube-up run-services ansible-install
+bootstrap: kube-resources ansible-install
 
 setup:
 	#!/usr/bin/env bash
 	set -euo pipefail
 
-	echo "checking for kubectl"
-	kubectl --help 1>/dev/null || (echo "download kubectl" && exit 1)
+	minikube --help 1>/dev/null || (echo "install minikube" >&2 && exit 1)
+	echo "minikube available"
 
-	# echo "checking for telepresence"
-	# telepresence --help 1>/dev/null || (echo "download telepresence" && exit 1)
+	kubectl --help 1>/dev/null || (echo "download kubectl" >&2 && exit 1)
+	echo "kubectl available"
+
+	docker run --rm hello-world 1>/dev/null || (echo "need to setup docker" >&2 && exit 1)
+	echo "docker available"
+
+	echo "building ansible image"
+	./dockerfiles/ansible/build.sh
+
+	echo ""
+	echo "   local setup is ready!"
 
 
-kube-up: setup
+minikube-up: setup
 	#!/usr/bin/env bash
 	set -euo pipefail
 
 	echo "starting minikube"
 	if [[ $(uname) == Linux ]] ; then
-	  # sudo CHANGE_MINIKUBE_NONE_USER=true $(which minikube) start --vm-driver none  --apiserver-ips 127.0.0.1 --apiserver-name localhost
-	  # echo "change" ~/.kube/config to use localhost as the server
-	  sudo $(which minikube) start --vm-driver kvm2
+	  minikube start --vm-driver kvm2
 	else
-	  sudo $(which minikube) start
+	  minikube start
 	fi
 
-	echo "building ansible image"
-	./dockerfiles/ansible/build.sh
 
-
-ansible-install:
+check-tidb-user:
 	#!/usr/bin/env bash
 	set -euo pipefail
 
@@ -53,39 +57,59 @@ ansible-install:
 	  grep -v tidb <(echo "$output") 1>/dev/null
 	) || (echo "$output" && exit 1)
 
-	# ./installer/bin/ansible ansible-playbook local_prepare.yml
-	./installer/bin/ansible ansible-playbook bootstrap.yml
-	./installer/bin/ansible ansible-playbook deploy.yml
-	./installer/bin/ansible ansible-playbook start.yml
+
+ansible-bootstrap: check-tidb-user
+	cd .. && ./installer/bin/ansible ansible-playbook bootstrap.yml
+
+ansible-deploy:
+	cd .. && ./installer/bin/ansible ansible-playbook deploy.yml
+
+ansible-start:
+	cd .. && ./installer/bin/ansible ansible-playbook start.yml
+
+ansible-prepare:
+	cd .. && ./installer/bin/ansible ansible-playbook local_prepare.yml
+
+ansible-install: ansible-prepare ansible-bootstrap ansible-deploy ansible-start
+
 
 kube-down: stop-services
-	sudo $(which minikube) stop
+	minikube stop
 
 
 stop-services:
 	#!/usr/bin/env bash
 	set -euo pipefail
+	# Ignore delete failures (we may have already deleted)
 	for yml in kube/**/*.yml ; do
-		kubectl delete -f "$yml" || echo "ingoring error when deleting $yml"
+		kubectl delete -f "$yml" &
 	done
+	FAIL=0
+	for job in `jobs -p` ; do
+		wait "$job" || let "FAIL+=1"
+	done
+
 
 
 run-services:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	eval $(sudo $(which minikube) docker-env)
+	eval $(minikube docker-env)
 	./dockerfiles/centos/build.sh
 
 	for yml in kube/**/*.yml ; do
-		kubectl create -f "$yml" || echo "ignoring error when creating $yml"
+		kubectl create -f "$yml"
 	done
-	sudo $(which minikube) dashboard
+
+	# echo "opening dashboard"
+	# minikube dashboard
 
 
-rerun-services: stop-services run-services
+kube-resources: minikube-up stop-services run-services
 
 
 debug:
+	#!/usr/bin/env bash
 	# kubectl logs -lapp=tikv -lapp=tidb -lapp=pd
 	kubectl describe statefulsets
 	kubectl get pods
@@ -94,18 +118,23 @@ debug:
 helm-install:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	eval $(sudo $(which minikube) docker-env)
+	eval $(minikube docker-env)
 
 	echo "checking for helm"
 	helm --help 1>/dev/null || (echo "download helm" && exit 1)
 
-	helm init
-	helm repo add banzaicloud-incubator http://kubernetes-charts-incubator.banzaicloud.com
-	if ! helm install --namespace tidb banzaicloud-incubator/tidb ; then
+	helm --kube-context minikube init
+	helm --kube-context minikube repo add banzaicloud-incubator http://kubernetes-charts-incubator.banzaicloud.com
+	if ! helm --kube-context minikube install --namespace banzai banzaicloud-incubator/tidb ; then
 	  sleep 10
-	  helm install --namespace tidb banzaicloud-incubator/tidb
+	  helm --kube-context minikube install --namespace banzai banzaicloud-incubator/tidb
 	fi
 
+mysql-connect:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	port="$(kubectl get svc ingress-nginx -o json | jq '.spec.ports[] | select(.name=="mysql") | .nodePort')"
+	echo mysql --host "$(minikube ip)" --port "$port"
 
 
 # vim: set ft=make :
