@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
 
+# Don't use root in the container, use the same user as the host
+USER_ARGS="-u $( id -u $USER ):$( id -g $USER )"
+if [[ $( uname ) == "Linux" ]] ; then
+  USER_ARGS="$USER_ARGS -v /etc/group:/etc/group:ro -v /etc/passwd:/etc/passwd:ro"
+else
+  uid="$( id -u $USER )"
+  user="$(whoami)"
+  echo "${user}:x:${uid}:" > /tmp/group
+  echo "${user}:x:${uid}:${uid}:Docker Master,,,:/home/${user}:/bin/sh" > /tmp/passwd
+  USER_ARGS="$USER_ARGS -v /tmp/group:/etc/group:ro -v /tmp/passwd:/etc/passwd:ro"
+fi
+
 cd "$(dirname "$0")/../.."
 DOCKER_INPUT_ARGS="${DOCKER_INPUT_ARGS:-"-i"}"
 docker run --rm $DOCKER_INPUT_ARGS --net=host -v "$PWD:$PWD" -w "$PWD" \
-    -v "$HOME/.minikube:$HOME/.minikube" -v "$HOME/.kube:/root/.kube" \
+     $USER_ARGS \
+     -v "$HOME/.minikube:$HOME/.minikube" -v "$HOME/.kube:/home/$(whoami)/.kube" \
     -v /usr/local/bin/kubectl:/usr/local/bin/kubectl \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v /tmp:/tmp -v "$PWD/.ansible:/root/.ansible" \
+    -v /tmp:/tmp -v "$PWD/.ansible:/home/$(whoami)/.ansible" \
     tidb/installer-ansible:2.5 "$@"
