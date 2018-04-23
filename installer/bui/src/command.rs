@@ -46,7 +46,7 @@ pub fn background_exit_code() -> Result<i32, ExitCodeError> {
     }
 }
 
-pub fn background(command: String) -> Result<RunningCommand, std::io::Error> {
+pub fn just_background(command: String) -> Result<RunningCommand, std::io::Error> {
   let just_recipe = command.clone();
   reset_background()?;
 
@@ -112,9 +112,9 @@ pub fn tail(file: &str) -> Result<String, std::io::Error> {
     Ok(String::from_utf8_lossy(output.stdout.as_slice()).to_string())
 }
 
-pub fn mysql_connect() -> Result<String, std::io::Error> {
+pub fn just(recipe: &str) -> Result<String, std::io::Error> {
     let output = Command::new("just")
-        .arg("mysql-connect")
+        .arg(recipe)
         .stdout(std::process::Stdio::piped())
         .output()?;
     Ok(String::from_utf8_lossy(&output.stdout).to_string())

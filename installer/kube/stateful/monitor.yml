@@ -8,6 +8,10 @@ spec:
   ports:
   - port: 9091
     name: pushgateway
+  - port: 9090
+    name: prometheus
+  - port: 3000
+    name: grafana
   clusterIP: None
   selector:
     app: monitor
@@ -39,6 +43,10 @@ spec:
         ports:
         - containerPort: 9091
           name: pushgateway
+        - containerPort: 9090
+          name: prometheus
+        - containerPort: 3000
+          name: grafana
         volumeMounts:
         - name: data1
           mountPath: /data1

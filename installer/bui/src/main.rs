@@ -39,6 +39,7 @@ pub struct Shared {
     error: String,
     running: Option<command::RunningCommand>,
     mysql_connect: String,
+    grafana_url: String,
 }
 
 /// The structure that holds our app data
@@ -55,6 +56,7 @@ impl MyApp {
                                                 error: "".into(),
                                                 running: None,
                                                 mysql_connect: "".into(),
+                                                grafana_url: "".into(),
                                             })));
 
         // Create `inner`, which takes care of the browser communication details for us.
@@ -85,7 +87,7 @@ impl MyApp {
                         match serde_json::from_value::<String>(msg.args) {
                             Ok(just_recipe) => {
                                 println!("just {}", just_recipe);
-                                match command::background(just_recipe.clone()) {
+                                match command::just_background(just_recipe.clone()) {
                                     Ok(running) => {
                                         let mut state = shared.as_tracked_mut();
                                         state.running = Some(running);
@@ -101,17 +103,18 @@ impl MyApp {
 
                     "mysql-connect" => {
                       // a normal web server would be better :)
-                      match command::mysql_connect() {
-                          Ok(conn_cmd) => {
-                              let mut state = shared.as_tracked_mut();
-                              state.mysql_connect = conn_cmd
-                          }
-                        , Err(e) => {
-                            error!("could not get mysql connect: {:?}", e);
-                        }
-                      }
+                      let output = command::just("mysql-connect").unwrap();
+                      let mut state = shared.as_tracked_mut();
+                      state.mysql_connect = output;
+                    },
 
+                    "grafana-url" => {
+                      // a normal web server would be better :)
+                      let output = command::just("grafana-url").unwrap();
+                      let mut state = shared.as_tracked_mut();
+                      state.grafana_url = output;
                     }
+
                     name => {
                         // This is an error case. Log it. (And do not take down the server.)
                         error!("callback with unknown name: {:?}", name);

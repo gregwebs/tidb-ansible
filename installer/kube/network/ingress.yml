@@ -32,3 +32,9 @@ spec:
         backend:
           serviceName: monitor
           servicePort: 3000
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: monitor
+          servicePort: 3000

@@ -11,7 +11,7 @@ import Html.Keyed as Keyed
 import Html.Events
 import Json.Decode
 import Json.Decode as Decode
-import Json.Decode exposing (int, string, float, bool, nullable, Decoder, map4, map3, list, field)
+import Json.Decode exposing (int, string, float, bool, nullable, Decoder, list, field)
 import Json.Encode as Encode
 
 import Material
@@ -38,6 +38,7 @@ type alias RunningCommand =
 type alias ServerState =
   { error : String
   , mysql_connect : String
+  , grafana_url : String
   , command : Maybe RunningCommand
   }
 
@@ -45,12 +46,13 @@ default_server_state : ServerState
 default_server_state =
   { error= ""
   , mysql_connect = ""
+  , grafana_url = ""
   , command = Nothing
   }
 
 decodeRunningCommand : Decoder RunningCommand
 decodeRunningCommand =
-  map4 RunningCommand
+  Decode.map4 RunningCommand
     (field "command" <| list string)
     (field "output" string)
     (field "error" string)
@@ -58,9 +60,10 @@ decodeRunningCommand =
 
 decodeServerState : Decoder ServerState
 decodeServerState =
-  map3 ServerState
+  Decode.map4 ServerState
     (field "error" string)
     (field "mysql_connect" string)
+    (field "grafana_url" string)
     (field "running" <| nullable decodeRunningCommand)
 
 type ReadyState
@@ -96,11 +99,13 @@ type alias Model =
     , token : String
     , ready_state : ReadyState
     , ui_state : UIState
+    , kube_services : KubeServices
     }
 
 init : ( Model, Cmd Msg )
 init =
-    ( { server_state = default_server_state
+    ( { kube_services = { services = [] }
+      , server_state = default_server_state
       , running_step = Nothing
       , steps =
         [ { name = "kube-up", recipe = "kube-resources", status = Next
@@ -147,8 +152,10 @@ type Msg
   | Mdl (Material.Msg Msg)
   | FailedDecode String
   | NewReadyState ReadyState
-  | CallbackDone (Result Http.Error String)
+  | CallbackDone (Result Http.Error ())
+  | KubeApi (Result Http.Error KubeServices)
   | UIMsg UIMsg
+  | OpenWindow String
 
 active_step : Model -> Maybe Step
 active_step model =
@@ -226,7 +233,7 @@ update msg model =
         ({model | token = token}, Cmd.none)
 
     InstallCommand name ->
-      (model, do_just_command model name)
+        (model, do_just_command model name)
 
     Mdl msg_ ->
         Material.update Mdl msg_ model
@@ -237,7 +244,23 @@ update msg model =
         ({model | ready_state = rs}, Cmd.none)
 
     CallbackDone result ->
-        (model, Cmd.none)
+        case result of
+          Err msg ->
+            ({model | fail_msg = toString msg }, Cmd.none)
+
+          Ok () ->
+            (model, Cmd.none)
+
+    KubeApi result ->
+        case result of
+          Err msg ->
+            ({model | fail_msg = toString msg }, Cmd.none)
+
+          Ok services ->
+            ({ model | kube_services = services }, Cmd.none)
+
+    OpenWindow url ->
+      (model, openWindow url)
 
     UIMsg msg ->
         let (ui_state, cmd) = update_ui_state msg model
@@ -251,8 +274,14 @@ update_ui_state msg model =
   case msg of
     SelectTab num ->
         let cmd = case num of
-          1 -> do_command model "mysql-connect"
-          _ -> Cmd.none
+          1 ->
+            Cmd.batch
+              [ do_command model "mysql-connect"
+              , do_command model "grafana-url"
+              -- , get_kubernetes_data
+              ]
+          _ ->
+            Cmd.none
         in
           let ui_state = model.ui_state
           in ({ ui_state | selected_tab = num }, cmd)
@@ -263,7 +292,8 @@ type alias Mdl =
 
 take_lines : Int -> String -> String
 take_lines total str =
-     String.split "\n" str
+     String.trimRight str
+  |> String.split "\n"
   |> List.reverse
   |> List.take total
   |> List.reverse
@@ -298,6 +328,12 @@ view model =
 
 viewClusterTab : Model -> Html Msg
 viewClusterTab model =
+  let grafana_link =
+          model.server_state.grafana_url
+       |> take_lines 1
+  in
+  let _ = Debug.log "g: " model.server_state.grafana_url in
+  let _ = Debug.log "g: " grafana_link in
   grid []
     [ cell [ size All 1 ] []
     , cell [ size All 10
@@ -309,11 +345,31 @@ viewClusterTab model =
           [ css "width" "100%"
           ]
           [ Card.title [] [ Card.head [] [text "MySQL connect"] ]
-          , Card.text [ ] [ text model.server_state.mysql_connect ]
+          , Card.text [] [
+              text model.server_state.mysql_connect
+            ]
+          , Card.actions [ Card.border ] []
+          ]
+      , Card.view
+          [ css "width" "100%"
+          , Options.onClick (OpenWindow grafana_link)
+          ]
+          [ Card.title [] [ Card.head [] [text "Grafana url"] ]
+          , Card.text [] [
+              Button.render Mdl [1] model.mdl
+                  [ Button.ripple
+                  -- , Button.accent
+                  , Options.onClick (OpenWindow grafana_link)
+                  ]
+                  [ text grafana_link ]
+              ]
+          , Card.actions [ Card.border ] [ ]
           ]
       ]
     ]
 
+-- port module OpenWindow exposing (openWindow)
+port openWindow : String -> Cmd msg
 
 viewInstallTab : Model -> Html Msg
 viewInstallTab model =
@@ -396,6 +452,19 @@ stepView model k step =
       ]
       [ text step.name ]
 
+get_kubernetes_data : Cmd Msg
+get_kubernetes_data =
+    Http.get "/api/vi/services" decodeServices
+ |> Http.send KubeApi
+
+type alias KubeServices =
+  { services : List String
+  }
+
+decodeServices : Decoder KubeServices
+decodeServices =
+  Decode.map KubeServices
+    (field "services" <| list string)
 
 {-
 isEnter : number -> Json.Decode.Decoder Msg
@@ -434,9 +503,9 @@ send_message model name args =
         Http.send CallbackDone <|
             postCallback body
 
-postCallback : Http.Body -> Http.Request String
+postCallback : Http.Body -> Http.Request ()
 postCallback body =
-  Http.post "callback" body string
+  postAndIgnoreResponseBody "/callback" body
 
 getServerStateOrFail : String -> Msg
 getServerStateOrFail encoded =
@@ -479,3 +548,28 @@ subscriptions model =
 main : Program Never Model Msg
 main =
     program { init = init, update = update, subscriptions = subscriptions, view = view }
+
+{-| Requests have "expectations" attached to them; these are essentially
+functions that run against the response. The Http module provides
+`expectString`; we could simply ignore the string it returns.
+`ignoreResponseBody` tells the type system explicitly that we don't care about
+the response body.
+-}
+ignoreResponseBody : Http.Expect ()
+ignoreResponseBody =
+    Http.expectStringResponse (\response -> Ok ())
+
+
+{-| A version of `post` with the `ignoreResponseBody` expectation.
+-}
+postAndIgnoreResponseBody : String -> Http.Body -> Http.Request ()
+postAndIgnoreResponseBody url body =
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = url
+        , body = body
+        , expect = ignoreResponseBody
+        , timeout = Nothing
+        , withCredentials = False
+        }

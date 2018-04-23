@@ -15,7 +15,7 @@ elm-watch:
 	cd bui/frontend_elm
 	watch -c -n 1 make
 
-kube-install: kube-resources ansible-install
+# kube-install: kube-resources ansible-install
 
 setup:
 	#!/usr/bin/env bash
@@ -81,13 +81,13 @@ ansible-bootstrap: check-tidb-user
 ansible-deploy:
 	cd .. && ./installer/bin/ansible ansible-playbook deploy.yml
 
-ansible-start:
-	cd .. && ./installer/bin/ansible ansible-playbook start.yml
+ansible-start +ARGS='':
+	cd .. && ./installer/bin/ansible ansible-playbook start.yml {{ARGS}}
 
 ansible-prepare:
 	cd .. && ./installer/bin/ansible ansible-playbook local_prepare.yml
 
-ansible-install: ansible-prepare ansible-bootstrap ansible-deploy ansible-start
+# ansible-install: ansible-prepare ansible-bootstrap ansible-deploy ansible-start
 
 
 kube-down: stop-services
@@ -153,7 +153,32 @@ mysql-connect:
 	port="$(kubectl get svc ingress-nginx -o json | jq '.spec.ports[] | select(.name=="mysql") | .nodePort')"
 	echo mysql --host "$(minikube ip)" --port "$port"
 
-kubectl-get ARGS='':
+
+sudo=''
+
+grafana-url:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	port="$(kubectl get svc ingress-nginx -o json | jq '.spec.ports[] | select(.name=="http") | .nodePort')"
+
+	etc_host="$(minikube ip) monitor.local"
+	if found=$(cat /etc/hosts | grep "$etc_host") ; then
+	  echo "found in /etc/hosts: $found"
+	#else
+	  #if [[ -z "{{sudo}}" ]] ; then
+	  #  echo "update /etc/hosts to: ${etc_host}"
+	  #else
+	  #	  if cat /etc/hosts | grep monitor.local > /dev/null ; then
+	  #	    echo "update /etc/hosts to\n${etc_host}"
+	  #	  else
+	  #	    echo "${etc_host}" | sudo tee -a /etc/hosts > /dev/null
+	  #	  fi
+	  #fi
+	fi
+
+	echo "http://$(minikube ip):${port}/"
+
+kubectl-get +ARGS='':
 	#!/usr/bin/env bash
 	set -euo pipefail
 	kubectl get -o json {{ARGS}}

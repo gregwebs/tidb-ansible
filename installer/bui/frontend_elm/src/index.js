@@ -4,7 +4,7 @@ function start() {
     if (!!window.EventSource) {
         var app = Elm.Main.embed(root);
 
-        var source = new EventSource("events");
+        var source = new EventSource("/events");
 
         source.addEventListener("bui_backend", function (e) {
             app.ports.event_source_data.send(e.data);
@@ -17,6 +17,10 @@ function start() {
         source.addEventListener('error', function (e) {
             app.ports.ready_state.send(source.readyState);
         }, false);
+
+        app.ports.openWindow.subscribe(function(newSite) {
+            window.open(newSite);
+        });
 
     } else {
         root.innerHTML = ('<div>'+
