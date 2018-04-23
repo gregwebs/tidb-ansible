@@ -40,6 +40,7 @@ type alias ServerState =
   , mysql_connect : String
   , grafana_url : String
   , command : Maybe RunningCommand
+  , cluster_info: List String
   }
 
 default_server_state : ServerState
@@ -48,6 +49,7 @@ default_server_state =
   , mysql_connect = ""
   , grafana_url = ""
   , command = Nothing
+  , cluster_info = []
   }
 
 decodeRunningCommand : Decoder RunningCommand
@@ -60,11 +62,12 @@ decodeRunningCommand =
 
 decodeServerState : Decoder ServerState
 decodeServerState =
-  Decode.map4 ServerState
+  Decode.map5 ServerState
     (field "error" string)
     (field "mysql_connect" string)
     (field "grafana_url" string)
     (field "running" <| nullable decodeRunningCommand)
+    (field "cluster_info" <| list string)
 
 type ReadyState
   = Connecting
@@ -99,12 +102,12 @@ type alias Model =
     , token : String
     , ready_state : ReadyState
     , ui_state : UIState
-    , kube_services : KubeServices
+    , kube_services : KubeStatefulSets
     }
 
 init : ( Model, Cmd Msg )
 init =
-    ( { kube_services = { services = [] }
+    ( { kube_services = { items = [] }
       , server_state = default_server_state
       , running_step = Nothing
       , steps =
@@ -153,7 +156,7 @@ type Msg
   | FailedDecode String
   | NewReadyState ReadyState
   | CallbackDone (Result Http.Error ())
-  | KubeApi (Result Http.Error KubeServices)
+  | KubeApi (Result Http.Error KubeStatefulSets)
   | UIMsg UIMsg
   | OpenWindow String
 
@@ -454,17 +457,32 @@ stepView model k step =
 
 get_kubernetes_data : Cmd Msg
 get_kubernetes_data =
-    Http.get "/api/vi/services" decodeServices
+    Http.get "/api/v1/statefulsets" decodeKubeStatefulSets
  |> Http.send KubeApi
 
-type alias KubeServices =
-  { services : List String
+type alias KubeMetaData =
+  { name: String }
+type alias KubeStatefulSet =
+  { metadata : KubeMetaData
+  }
+type alias KubeStatefulSets =
+  { items : List KubeStatefulSet
   }
 
-decodeServices : Decoder KubeServices
-decodeServices =
-  Decode.map KubeServices
-    (field "services" <| list string)
+decodeKubeMetaData : Decoder KubeMetaData
+decodeKubeMetaData =
+  Decode.map KubeMetaData
+    (field "name" string)
+
+decodeKubeStatefulSet : Decoder KubeStatefulSet
+decodeKubeStatefulSet =
+  Decode.map KubeStatefulSet
+    (field "metadata" decodeKubeMetaData)
+
+decodeKubeStatefulSets : Decoder KubeStatefulSets
+decodeKubeStatefulSets =
+  Decode.map KubeStatefulSets
+    (field "items" <| list decodeKubeStatefulSet)
 
 {-
 isEnter : number -> Json.Decode.Decoder Msg

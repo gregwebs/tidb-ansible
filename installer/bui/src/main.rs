@@ -29,6 +29,7 @@ extern crate tidb_installer;
 extern crate serde_derive;
 use tidb_installer::args::{jwt_secret, is_loopback, address, app_arguments};
 use tidb_installer::command;
+use tidb_installer::cluster;
 
 
 // Include the files to be served and define `fn get_default_config()`.
@@ -40,6 +41,7 @@ pub struct Shared {
     running: Option<command::RunningCommand>,
     mysql_connect: String,
     grafana_url: String,
+    cluster_info: Vec<String>,
 }
 
 /// The structure that holds our app data
@@ -57,6 +59,7 @@ impl MyApp {
                                                 running: None,
                                                 mysql_connect: "".into(),
                                                 grafana_url: "".into(),
+                                                cluster_info: vec![],
                                             })));
 
         // Create `inner`, which takes care of the browser communication details for us.
@@ -163,14 +166,20 @@ fn run() -> Result<(),Error> {
     let my_app = MyApp::new(&secret, &http_server_addr, config);
 
     // Clone our shared data to move it into a closure later.
-    let tracker_arc = my_app.inner.shared_arc().clone();
+    let shared_for_command = my_app.inner.shared_arc().clone();
+    let shared_for_cluster = my_app.inner.shared_arc().clone();
 
     // Get a handle to our event loop.
     let handle = my_app.handle();
 
-    // Create a stream to periodically call our closure
-    let interval_stream: tokio_core::reactor::Interval =
+    // Create a stream to periodically call our commands
+    let command_interval_stream: tokio_core::reactor::Interval =
         tokio_core::reactor::Interval::new(std::time::Duration::from_millis(250), &handle)
+            .unwrap();
+
+    // Create a stream to periodically update our cluster info
+    let cluster_interval_stream: tokio_core::reactor::Interval =
+        tokio_core::reactor::Interval::new(std::time::Duration::from_millis(2000), &handle)
             .unwrap();
 
     match command::background_exit_code() {
@@ -180,26 +189,38 @@ fn run() -> Result<(),Error> {
           command::reset_background().expect("reset background output");
         }
     }
-    let stream_future = interval_stream
+    let stream_future = command_interval_stream
         .for_each(move |_| {
             // Update the command output
             match command::update_running_command()? {
                 None => {}
                 Some(running) => {
-                  let mut shared_store = tracker_arc.lock().unwrap();
+                  let mut shared_store = shared_for_command.lock().unwrap();
                   let mut shared = shared_store.as_tracked_mut();
                   shared.running = Some(running);
                 }
             }
             Ok(())
         })
-        .map_err(|e| {
-                     error!("interval error {:?}", e);
-                     ()
-                 });
+        .map_err(|e| { error!("interval error {:?}", e); () });
+
+    let cluster_future = cluster_interval_stream
+        .for_each(move |_| {
+            match cluster::get_cluster_info()? {
+                None => {}
+                Some(cluster_info) => {
+                  let mut shared_store = shared_for_cluster.lock().unwrap();
+                  let mut shared = shared_store.as_tracked_mut();
+                  shared.cluster_info = cluster_info;
+                }
+            }
+            Ok(())
+        })
+        .map_err(|e| { error!("interval error {:?}", e); () });
 
     // Put our stream into our event loop.
     my_app.handle().spawn(stream_future);
+    my_app.handle().spawn(cluster_future);
 
     println!("Listening on http://{}", http_server_addr);
 

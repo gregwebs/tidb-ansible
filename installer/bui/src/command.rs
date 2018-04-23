@@ -119,3 +119,11 @@ pub fn just(recipe: &str) -> Result<String, std::io::Error> {
         .output()?;
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
+
+pub fn run(exe: &str, args: Vec<&str>) -> Result<String, std::io::Error> {
+    let output = Command::new(exe)
+        .args(args)
+        .stdout(std::process::Stdio::piped())
+        .output()?;
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}

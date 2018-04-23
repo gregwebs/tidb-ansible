@@ -8,3 +8,4 @@ extern crate clap;
 
 pub mod args;
 pub mod command;
+pub mod cluster;
