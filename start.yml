@@ -17,16 +17,14 @@
 - name: check config locally
   hosts: localhost
   any_errors_fatal: true
-  tags:
-    - always
+  tags: [always]
   roles:
     - check_config_static
 
 - name: gather all facts, and check dest
   hosts: all
   any_errors_fatal: true
-  tags:
-    - always
+  tags: [always]
   roles:
     - check_config_dynamic
 
@@ -291,11 +289,11 @@
         "http://{{ grafana_admin_user }}:{{ grafana_admin_password }}@127.0.0.1:{{ grafana_port }}/api/datasources"
 
     - name: import grafana dashboards - prepare config
-      delegate_to: localhost
-      template: src=grafana.dest.json.j2 dest={{ playbook_dir }}/scripts/dests.json
+      # delegate_to: localhost
+      template: src=grafana.dest.json.j2 dest={{ deploy_dir }}/scripts/dests.json
       vars:
-        - ansible_become: false
-        - ansible_connection: local
+          #- ansible_become: false
+          #- ansible_connection: local
         - grafana_dest_config:
             name: "{{ cluster_name | title }}"
             url: "http://{{ grafana_host }}:{{ grafana_port }}/"
@@ -315,11 +313,18 @@
               disk_performance: "{{ cluster_name | title }}-Disk-Performance"
               blackbox_exporter: "{{ cluster_name | title }}-Blackbox_exporter"
 
+    - name: import grafana dashboards - upload json
+      copy:
+        src: ./scripts/
+        dest: "{{ deploy_dir }}/scripts/grafana/"
+        mode: "0755"
+
+
     - name: import grafana dashboards - run import script
-      delegate_to: localhost
+      # delegate_to: localhost
       shell: >-
-        chdir={{ playbook_dir }}/scripts
+        chdir={{ deploy_dir }}/scripts/grafana
         ./grafana-config-copy.py
       vars:
-        - ansible_become: false
-        - ansible_connection: local
+          #- ansible_become: false
+          #- ansible_connection: local
