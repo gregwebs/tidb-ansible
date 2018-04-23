@@ -16719,8 +16719,6 @@ var _user$project$Main$update = F2(
 	});
 var _user$project$Main$viewClusterTab = function (model) {
 	var grafana_link = A2(_user$project$Main$take_lines, 1, model.server_state.grafana_url);
-	var _p20 = A2(_elm_lang$core$Debug$log, 'g: ', model.server_state.grafana_url);
-	var _p21 = A2(_elm_lang$core$Debug$log, 'g: ', grafana_link);
 	return A2(
 		_debois$elm_mdl$Material_Grid$grid,
 		{ctor: '[]'},
@@ -16899,8 +16897,8 @@ var _user$project$Main$InstallCommand = function (a) {
 var _user$project$Main$stepView = F3(
 	function (model, k, step) {
 		var shade = function () {
-			var _p22 = step.status;
-			if (_p22.ctor === 'Completed') {
+			var _p20 = step.status;
+			if (_p20.ctor === 'Completed') {
 				return _debois$elm_mdl$Material_Color$S100;
 			} else {
 				return _debois$elm_mdl$Material_Color$S500;
@@ -17018,11 +17016,11 @@ var _user$project$Main$viewInstallTab = function (model) {
 								_elm_lang$html$Html$p,
 								{ctor: '[]'},
 								function () {
-									var _p23 = _user$project$Main$active_step(model);
-									if (_p23.ctor === 'Nothing') {
+									var _p21 = _user$project$Main$active_step(model);
+									if (_p21.ctor === 'Nothing') {
 										return {ctor: '[]'};
 									} else {
-										var _p24 = _p23._0;
+										var _p22 = _p21._0;
 										return {
 											ctor: '::',
 											_0: A2(
@@ -17039,7 +17037,7 @@ var _user$project$Main$viewInstallTab = function (model) {
 																_0: 'Step',
 																_1: {
 																	ctor: '::',
-																	_0: A2(_elm_lang$core$String$append, _p24.name, ': '),
+																	_0: A2(_elm_lang$core$String$append, _p22.name, ': '),
 																	_1: {ctor: '[]'}
 																}
 															})),
@@ -17047,7 +17045,7 @@ var _user$project$Main$viewInstallTab = function (model) {
 												}),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html$text(_p24.description),
+												_0: _elm_lang$html$Html$text(_p22.description),
 												_1: {ctor: '[]'}
 											}
 										};
@@ -17080,8 +17078,8 @@ var _user$project$Main$viewInstallTab = function (model) {
 											_1: {ctor: '[]'}
 										},
 										function () {
-											var _p25 = model.running_step;
-											if (_p25.ctor === 'Nothing') {
+											var _p23 = model.running_step;
+											if (_p23.ctor === 'Nothing') {
 												return {
 													ctor: '::',
 													_0: _debois$elm_mdl$Material_Progress$progress(0),
@@ -17259,8 +17257,8 @@ var _user$project$Main$view = function (model) {
 				main: {
 					ctor: '::',
 					_0: function () {
-						var _p26 = model.ui_state.selected_tab;
-						switch (_p26) {
+						var _p24 = model.ui_state.selected_tab;
+						switch (_p24) {
 							case 0:
 								return _user$project$Main$viewInstallTab(model);
 							case 1:
@@ -17283,11 +17281,11 @@ var _user$project$Main$NewServerState = function (a) {
 	return {ctor: 'NewServerState', _0: a};
 };
 var _user$project$Main$getServerStateOrFail = function (encoded) {
-	var _p27 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$decodeServerState, encoded);
-	if (_p27.ctor === 'Ok') {
-		return _user$project$Main$NewServerState(_p27._0);
+	var _p25 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$decodeServerState, encoded);
+	if (_p25.ctor === 'Ok') {
+		return _user$project$Main$NewServerState(_p25._0);
 	} else {
-		return _user$project$Main$FailedDecode(_p27._0);
+		return _user$project$Main$FailedDecode(_p25._0);
 	}
 };
 var _user$project$Main$subscriptions = function (model) {

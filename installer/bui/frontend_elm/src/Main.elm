@@ -335,8 +335,6 @@ viewClusterTab model =
           model.server_state.grafana_url
        |> take_lines 1
   in
-  let _ = Debug.log "g: " model.server_state.grafana_url in
-  let _ = Debug.log "g: " grafana_link in
   grid []
     [ cell [ size All 1 ] []
     , cell [ size All 10
