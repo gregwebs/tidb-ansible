@@ -27,6 +27,9 @@ setup:
 	kubectl --help 1>/dev/null || (echo "download kubectl" >&2 && exit 1)
 	echo "kubectl available"
 
+	jq --help 1>/dev/null || (echo "download jq https://stedolan.github.io/jq/download/" >&2 && exit 1)
+	echo "jq available"
+
 	docker run --rm hello-world 1>/dev/null || (echo "need to setup docker" >&2 && exit 1)
 	echo "docker available"
 
@@ -182,5 +185,21 @@ kubectl-get +ARGS='':
 	#!/usr/bin/env bash
 	set -euo pipefail
 	kubectl get -o json {{ARGS}}
+
+cluster-info:
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	sets=$(kubectl get statefulsets -o json | jq -c '.items[] | {name: .metadata.name, status, ports: .spec.template.spec.containers[] | .ports}')
+	for set in $sets ; do
+	  # echo "$set"
+	  name=$(echo "$set" | jq -r '.name')
+	  pods=$(kubectl get pods -o json -l "app=$name" | jq -c '.items[] | {name: .metadata.name, hostname: .spec.hostname}')
+	  for pod in $pods ; do
+	    name=$(echo "$pod" | jq -r '.name')
+	    systemctl_status=$(kubectl exec "${name}" -- systemctl status)
+	    echo "${systemctl_status}"
+	  done
+	done
 
 # vim: set ft=make :
