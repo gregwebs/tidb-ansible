@@ -102,7 +102,7 @@ def import_dashboard(api_url, api_key, dashboard):
                'overwrite': True}
     headers = {'Authorization': "Bearer {}".format(api_key),
                'Content-Type': 'application/json'}
-    json_request(api_url + 'api/dashboards/db', headers, payload)
+    return json_request(api_url + 'api/dashboards/db', headers, payload)
 
 
 def import_dashboard_via_user_pass(api_url, user, password, dashboard):
@@ -111,7 +111,7 @@ def import_dashboard_via_user_pass(api_url, user, password, dashboard):
     auth_string = base64.b64encode('%s:%s' % (user, password))
     headers = {'Authorization': "Basic {}".format(auth_string),
                'Content-Type': 'application/json'}
-    json_request(api_url + 'api/dashboards/db', headers, payload)
+    return json_request(api_url + 'api/dashboards/db', headers, payload)
 
 
 if __name__ == '__main__':
