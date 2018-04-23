@@ -344,7 +344,7 @@ viewClusterTab model =
       , css "padding-left" "30px"
       , css "padding-right" "30px"
       ]
-      [ Card.view
+      ([ Card.view
           [ css "width" "100%"
           ]
           [ Card.title [] [ Card.head [] [text "MySQL connect"] ]
@@ -361,17 +361,35 @@ viewClusterTab model =
           , Card.text [] [
               Button.render Mdl [1] model.mdl
                   [ Button.ripple
-                  -- , Button.accent
                   , Options.onClick (OpenWindow grafana_link)
                   ]
                   [ text grafana_link ]
               ]
           , Card.actions [ Card.border ] [ ]
           ]
-      ]
+      ] ++ (viewServers model))
     ]
 
--- port module OpenWindow exposing (openWindow)
+
+viewServers : Model -> List (Html Msg)
+viewServers model =
+  List.map viewServer model.server_state.cluster_info
+
+viewServer : String -> Html Msg
+viewServer server_text =
+  let lines = String.split "\n" server_text
+      server = defaultEmpty <| List.head lines
+      info = List.tail lines |> Maybe.withDefault [] |> String.join "\n"
+  in
+    Card.view
+      [ css "width" "100%"
+      ]
+      [ Card.title [] [ Card.head [] [text server] ]
+      , Card.text [] [ pre [] [text info] ]
+      , Card.actions [ Card.border ] [ ]
+      ]
+
+
 port openWindow : String -> Cmd msg
 
 viewInstallTab : Model -> Html Msg

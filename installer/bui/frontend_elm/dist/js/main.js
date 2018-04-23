@@ -16189,6 +16189,76 @@ var _user$project$Main$callbackEncoded = F3(
 		return _elm_lang$core$Json_Encode$object(list);
 	});
 var _user$project$Main$defaultEmpty = _elm_lang$core$Maybe$withDefault('');
+var _user$project$Main$viewServer = function (server_text) {
+	var lines = A2(_elm_lang$core$String$split, '\n', server_text);
+	var server = _user$project$Main$defaultEmpty(
+		_elm_lang$core$List$head(lines));
+	var info = A2(
+		_elm_lang$core$String$join,
+		'\n',
+		A2(
+			_elm_lang$core$Maybe$withDefault,
+			{ctor: '[]'},
+			_elm_lang$core$List$tail(lines)));
+	return A2(
+		_debois$elm_mdl$Material_Card$view,
+		{
+			ctor: '::',
+			_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '100%'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_debois$elm_mdl$Material_Card$title,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: A2(
+						_debois$elm_mdl$Material_Card$head,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(server),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_debois$elm_mdl$Material_Card$text,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$pre,
+							{ctor: '[]'},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(info),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_debois$elm_mdl$Material_Card$actions,
+						{
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Card$border,
+							_1: {ctor: '[]'}
+						},
+						{ctor: '[]'}),
+					_1: {ctor: '[]'}
+				}
+			}
+		});
+};
+var _user$project$Main$viewServers = function (model) {
+	return A2(_elm_lang$core$List$map, _user$project$Main$viewServer, model.server_state.cluster_info);
+};
 var _user$project$Main$take_lines = F2(
 	function (total, str) {
 		return A2(
@@ -16685,69 +16755,16 @@ var _user$project$Main$viewClusterTab = function (model) {
 							}
 						}
 					},
-					{
-						ctor: '::',
-						_0: A2(
-							_debois$elm_mdl$Material_Card$view,
-							{
-								ctor: '::',
-								_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '100%'),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: A2(
-									_debois$elm_mdl$Material_Card$title,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: A2(
-											_debois$elm_mdl$Material_Card$head,
-											{ctor: '[]'},
-											{
-												ctor: '::',
-												_0: _elm_lang$html$Html$text('MySQL connect'),
-												_1: {ctor: '[]'}
-											}),
-										_1: {ctor: '[]'}
-									}),
-								_1: {
-									ctor: '::',
-									_0: A2(
-										_debois$elm_mdl$Material_Card$text,
-										{ctor: '[]'},
-										{
-											ctor: '::',
-											_0: _elm_lang$html$Html$text(model.server_state.mysql_connect),
-											_1: {ctor: '[]'}
-										}),
-									_1: {
-										ctor: '::',
-										_0: A2(
-											_debois$elm_mdl$Material_Card$actions,
-											{
-												ctor: '::',
-												_0: _debois$elm_mdl$Material_Card$border,
-												_1: {ctor: '[]'}
-											},
-											{ctor: '[]'}),
-										_1: {ctor: '[]'}
-									}
-								}
-							}),
-						_1: {
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						{
 							ctor: '::',
 							_0: A2(
 								_debois$elm_mdl$Material_Card$view,
 								{
 									ctor: '::',
 									_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '100%'),
-									_1: {
-										ctor: '::',
-										_0: _debois$elm_mdl$Material_Options$onClick(
-											_user$project$Main$OpenWindow(grafana_link)),
-										_1: {ctor: '[]'}
-									}
+									_1: {ctor: '[]'}
 								},
 								{
 									ctor: '::',
@@ -16761,7 +16778,7 @@ var _user$project$Main$viewClusterTab = function (model) {
 												{ctor: '[]'},
 												{
 													ctor: '::',
-													_0: _elm_lang$html$Html$text('Grafana url'),
+													_0: _elm_lang$html$Html$text('MySQL connect'),
 													_1: {ctor: '[]'}
 												}),
 											_1: {ctor: '[]'}
@@ -16773,30 +16790,7 @@ var _user$project$Main$viewClusterTab = function (model) {
 											{ctor: '[]'},
 											{
 												ctor: '::',
-												_0: A5(
-													_debois$elm_mdl$Material_Button$render,
-													_user$project$Main$Mdl,
-													{
-														ctor: '::',
-														_0: 1,
-														_1: {ctor: '[]'}
-													},
-													model.mdl,
-													{
-														ctor: '::',
-														_0: _debois$elm_mdl$Material_Button$ripple,
-														_1: {
-															ctor: '::',
-															_0: _debois$elm_mdl$Material_Options$onClick(
-																_user$project$Main$OpenWindow(grafana_link)),
-															_1: {ctor: '[]'}
-														}
-													},
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html$text(grafana_link),
-														_1: {ctor: '[]'}
-													}),
+												_0: _elm_lang$html$Html$text(model.server_state.mysql_connect),
 												_1: {ctor: '[]'}
 											}),
 										_1: {
@@ -16813,9 +16807,88 @@ var _user$project$Main$viewClusterTab = function (model) {
 										}
 									}
 								}),
-							_1: {ctor: '[]'}
-						}
-					}),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_debois$elm_mdl$Material_Card$view,
+									{
+										ctor: '::',
+										_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '100%'),
+										_1: {
+											ctor: '::',
+											_0: _debois$elm_mdl$Material_Options$onClick(
+												_user$project$Main$OpenWindow(grafana_link)),
+											_1: {ctor: '[]'}
+										}
+									},
+									{
+										ctor: '::',
+										_0: A2(
+											_debois$elm_mdl$Material_Card$title,
+											{ctor: '[]'},
+											{
+												ctor: '::',
+												_0: A2(
+													_debois$elm_mdl$Material_Card$head,
+													{ctor: '[]'},
+													{
+														ctor: '::',
+														_0: _elm_lang$html$Html$text('Grafana url'),
+														_1: {ctor: '[]'}
+													}),
+												_1: {ctor: '[]'}
+											}),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_debois$elm_mdl$Material_Card$text,
+												{ctor: '[]'},
+												{
+													ctor: '::',
+													_0: A5(
+														_debois$elm_mdl$Material_Button$render,
+														_user$project$Main$Mdl,
+														{
+															ctor: '::',
+															_0: 1,
+															_1: {ctor: '[]'}
+														},
+														model.mdl,
+														{
+															ctor: '::',
+															_0: _debois$elm_mdl$Material_Button$ripple,
+															_1: {
+																ctor: '::',
+																_0: _debois$elm_mdl$Material_Options$onClick(
+																	_user$project$Main$OpenWindow(grafana_link)),
+																_1: {ctor: '[]'}
+															}
+														},
+														{
+															ctor: '::',
+															_0: _elm_lang$html$Html$text(grafana_link),
+															_1: {ctor: '[]'}
+														}),
+													_1: {ctor: '[]'}
+												}),
+											_1: {
+												ctor: '::',
+												_0: A2(
+													_debois$elm_mdl$Material_Card$actions,
+													{
+														ctor: '::',
+														_0: _debois$elm_mdl$Material_Card$border,
+														_1: {ctor: '[]'}
+													},
+													{ctor: '[]'}),
+												_1: {ctor: '[]'}
+											}
+										}
+									}),
+								_1: {ctor: '[]'}
+							}
+						},
+						_user$project$Main$viewServers(model))),
 				_1: {ctor: '[]'}
 			}
 		});
