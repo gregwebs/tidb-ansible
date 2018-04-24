@@ -4,6 +4,7 @@ port module Main exposing (..)
 
 import Http
 import Array exposing (Array)
+import Dict exposing (Dict)
 
 import Html exposing (..)
 import Html.Attributes exposing (href, class, style)
@@ -74,7 +75,7 @@ type ReadyState
   | Open
   | Closed
 
-type alias UIState = { selected_tab : Int }
+type alias UIState = { selected_tab : Int, state_map: Dict String String }
 
 
 type StepStatus
@@ -141,12 +142,13 @@ Run ansible start. Starts up TiDB services.
       , mdl = Material.model
       , token = ""
       , ready_state = Connecting
-      , ui_state = { selected_tab = 0 }
+      , ui_state = { selected_tab = 0, state_map = Dict.empty }
       }
     , Cmd.none )
 
 type UIMsg
   = SelectTab Int
+  | StateMapToggle String String
 
 type Msg
   = NewServerState ServerState
@@ -271,7 +273,6 @@ update msg model =
             ({ model | ui_state = ui_state }, cmd)
 
 
--- | UIState does not generate commands
 update_ui_state : UIMsg -> Model -> (UIState, Cmd Msg)
 update_ui_state msg model =
   case msg of
@@ -288,6 +289,17 @@ update_ui_state msg model =
         in
           let ui_state = model.ui_state
           in ({ ui_state | selected_tab = num }, cmd)
+
+    StateMapToggle key value ->
+      let ui_state = model.ui_state
+      in
+         let modify = case Dict.get key ui_state.state_map of
+                Nothing ->
+                  Dict.insert key value
+                Just _ ->
+                  Dict.remove key
+           in
+              ({ ui_state | state_map = modify ui_state.state_map }, Cmd.none)
 
 
 type alias Mdl =
@@ -371,19 +383,28 @@ viewClusterTab model =
 
 viewServers : Model -> List (Html Msg)
 viewServers model =
-  List.map viewServer model.server_state.cluster_info
+  List.map (viewServer model) model.server_state.cluster_info
 
-viewServer : String -> Html Msg
-viewServer server_text =
+viewServer : Model -> String -> Html Msg
+viewServer model server_text =
   let lines = String.split "\n" server_text
       server = defaultEmpty <| List.head lines
       info = List.tail lines |> Maybe.withDefault [] |> String.join "\n"
   in
     Card.view
       [ css "width" "100%"
+      , Options.onClick (UIMsg (StateMapToggle server "toggled"))
       ]
-      [ Card.title [] [ Card.head [] [text server] ]
-      , Card.text [] [ pre [] [text info] ]
+      [ Card.title []
+        [ Card.head []
+          [ text server
+          , Button.render Mdl [1] model.mdl [ css "margin-left" "30px"] [ text "Systemctl" ]
+          ]
+        ]
+      , Card.text []
+        (case Dict.get server model.ui_state.state_map of
+          Just _ -> [ pre [] [text info] ]
+          Nothing -> [])
       , Card.actions [ Card.border ] [ ]
       ]
 

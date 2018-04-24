@@ -16189,76 +16189,6 @@ var _user$project$Main$callbackEncoded = F3(
 		return _elm_lang$core$Json_Encode$object(list);
 	});
 var _user$project$Main$defaultEmpty = _elm_lang$core$Maybe$withDefault('');
-var _user$project$Main$viewServer = function (server_text) {
-	var lines = A2(_elm_lang$core$String$split, '\n', server_text);
-	var server = _user$project$Main$defaultEmpty(
-		_elm_lang$core$List$head(lines));
-	var info = A2(
-		_elm_lang$core$String$join,
-		'\n',
-		A2(
-			_elm_lang$core$Maybe$withDefault,
-			{ctor: '[]'},
-			_elm_lang$core$List$tail(lines)));
-	return A2(
-		_debois$elm_mdl$Material_Card$view,
-		{
-			ctor: '::',
-			_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '100%'),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: A2(
-				_debois$elm_mdl$Material_Card$title,
-				{ctor: '[]'},
-				{
-					ctor: '::',
-					_0: A2(
-						_debois$elm_mdl$Material_Card$head,
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text(server),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_debois$elm_mdl$Material_Card$text,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$pre,
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text(info),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_debois$elm_mdl$Material_Card$actions,
-						{
-							ctor: '::',
-							_0: _debois$elm_mdl$Material_Card$border,
-							_1: {ctor: '[]'}
-						},
-						{ctor: '[]'}),
-					_1: {ctor: '[]'}
-				}
-			}
-		});
-};
-var _user$project$Main$viewServers = function (model) {
-	return A2(_elm_lang$core$List$map, _user$project$Main$viewServer, model.server_state.cluster_info);
-};
 var _user$project$Main$take_lines = F2(
 	function (total, str) {
 		return A2(
@@ -16323,9 +16253,10 @@ var _user$project$Main$decodeServerState = A6(
 		_elm_lang$core$Json_Decode$field,
 		'cluster_info',
 		_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)));
-var _user$project$Main$UIState = function (a) {
-	return {selected_tab: a};
-};
+var _user$project$Main$UIState = F2(
+	function (a, b) {
+		return {selected_tab: a, state_map: b};
+	});
 var _user$project$Main$Step = F4(
 	function (a, b, c, d) {
 		return {name: a, recipe: b, status: c, description: d};
@@ -16418,7 +16349,7 @@ var _user$project$Main$init = {
 		mdl: _debois$elm_mdl$Material$model,
 		token: '',
 		ready_state: _user$project$Main$Connecting,
-		ui_state: {selected_tab: 0}
+		ui_state: {selected_tab: 0, state_map: _elm_lang$core$Dict$empty}
 	},
 	_1: _elm_lang$core$Platform_Cmd$none
 };
@@ -16525,6 +16456,10 @@ var _user$project$Main$update_steps = function (model) {
 		}
 	}
 };
+var _user$project$Main$StateMapToggle = F2(
+	function (a, b) {
+		return {ctor: 'StateMapToggle', _0: a, _1: b};
+	});
 var _user$project$Main$SelectTab = function (a) {
 	return {ctor: 'SelectTab', _0: a};
 };
@@ -16564,32 +16499,54 @@ var _user$project$Main$do_command = F2(
 var _user$project$Main$update_ui_state = F2(
 	function (msg, model) {
 		var _p11 = msg;
-		var _p13 = _p11._0;
-		var cmd = function () {
-			var _p12 = _p13;
-			if (_p12 === 1) {
-				return _elm_lang$core$Platform_Cmd$batch(
-					{
-						ctor: '::',
-						_0: A2(_user$project$Main$do_command, model, 'mysql-connect'),
-						_1: {
+		if (_p11.ctor === 'SelectTab') {
+			var _p13 = _p11._0;
+			var cmd = function () {
+				var _p12 = _p13;
+				if (_p12 === 1) {
+					return _elm_lang$core$Platform_Cmd$batch(
+						{
 							ctor: '::',
-							_0: A2(_user$project$Main$do_command, model, 'grafana-url'),
-							_1: {ctor: '[]'}
-						}
-					});
-			} else {
-				return _elm_lang$core$Platform_Cmd$none;
-			}
-		}();
-		var ui_state = model.ui_state;
-		return {
-			ctor: '_Tuple2',
-			_0: _elm_lang$core$Native_Utils.update(
-				ui_state,
-				{selected_tab: _p13}),
-			_1: cmd
-		};
+							_0: A2(_user$project$Main$do_command, model, 'mysql-connect'),
+							_1: {
+								ctor: '::',
+								_0: A2(_user$project$Main$do_command, model, 'grafana-url'),
+								_1: {ctor: '[]'}
+							}
+						});
+				} else {
+					return _elm_lang$core$Platform_Cmd$none;
+				}
+			}();
+			var ui_state = model.ui_state;
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					ui_state,
+					{selected_tab: _p13}),
+				_1: cmd
+			};
+		} else {
+			var _p15 = _p11._0;
+			var ui_state = model.ui_state;
+			var modify = function () {
+				var _p14 = A2(_elm_lang$core$Dict$get, _p15, ui_state.state_map);
+				if (_p14.ctor === 'Nothing') {
+					return A2(_elm_lang$core$Dict$insert, _p15, _p11._1);
+				} else {
+					return _elm_lang$core$Dict$remove(_p15);
+				}
+			}();
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					ui_state,
+					{
+						state_map: modify(ui_state.state_map)
+					}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
+		}
 	});
 var _user$project$Main$do_just_command = F2(
 	function (model, value) {
@@ -16606,12 +16563,12 @@ var _user$project$Main$FailedDecode = function (a) {
 	return {ctor: 'FailedDecode', _0: a};
 };
 var _user$project$Main$decodeReadyState = function (code) {
-	var _p14 = A2(_elm_lang$core$Debug$log, 'ready state: ', code);
-	var _p15 = _user$project$Main$to_ready_state(code);
-	if (_p15.ctor === 'Ok') {
-		return _user$project$Main$NewReadyState(_p15._0);
+	var _p16 = A2(_elm_lang$core$Debug$log, 'ready state: ', code);
+	var _p17 = _user$project$Main$to_ready_state(code);
+	if (_p17.ctor === 'Ok') {
+		return _user$project$Main$NewReadyState(_p17._0);
 	} else {
-		return _user$project$Main$FailedDecode(_p15._0);
+		return _user$project$Main$FailedDecode(_p17._0);
 	}
 };
 var _user$project$Main$Mdl = function (a) {
@@ -16619,15 +16576,15 @@ var _user$project$Main$Mdl = function (a) {
 };
 var _user$project$Main$update = F2(
 	function (msg, model) {
-		var _p16 = msg;
-		switch (_p16.ctor) {
+		var _p18 = msg;
+		switch (_p18.ctor) {
 			case 'NewServerState':
 				return {
 					ctor: '_Tuple2',
 					_0: _user$project$Main$update_steps(
 						_elm_lang$core$Native_Utils.update(
 							model,
-							{server_state: _p16._0})),
+							{server_state: _p18._0})),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'NewToken':
@@ -16635,23 +16592,23 @@ var _user$project$Main$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{token: _p16._0}),
+						{token: _p18._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'InstallCommand':
 				return {
 					ctor: '_Tuple2',
 					_0: model,
-					_1: A2(_user$project$Main$do_just_command, model, _p16._0)
+					_1: A2(_user$project$Main$do_just_command, model, _p18._0)
 				};
 			case 'Mdl':
-				return A3(_debois$elm_mdl$Material$update, _user$project$Main$Mdl, _p16._0, model);
+				return A3(_debois$elm_mdl$Material$update, _user$project$Main$Mdl, _p18._0, model);
 			case 'FailedDecode':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{fail_msg: _p16._0}),
+						{fail_msg: _p18._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'NewReadyState':
@@ -16659,18 +16616,18 @@ var _user$project$Main$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{ready_state: _p16._0}),
+						{ready_state: _p18._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'CallbackDone':
-				var _p17 = _p16._0;
-				if (_p17.ctor === 'Err') {
+				var _p19 = _p18._0;
+				if (_p19.ctor === 'Err') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								fail_msg: _elm_lang$core$Basics$toString(_p17._0)
+								fail_msg: _elm_lang$core$Basics$toString(_p19._0)
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
@@ -16678,14 +16635,14 @@ var _user$project$Main$update = F2(
 					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				}
 			case 'KubeApi':
-				var _p18 = _p16._0;
-				if (_p18.ctor === 'Err') {
+				var _p20 = _p18._0;
+				if (_p20.ctor === 'Err') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								fail_msg: _elm_lang$core$Basics$toString(_p18._0)
+								fail_msg: _elm_lang$core$Basics$toString(_p20._0)
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
@@ -16694,7 +16651,7 @@ var _user$project$Main$update = F2(
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
-							{kube_services: _p18._0}),
+							{kube_services: _p20._0}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
@@ -16702,12 +16659,12 @@ var _user$project$Main$update = F2(
 				return {
 					ctor: '_Tuple2',
 					_0: model,
-					_1: _user$project$Main$openWindow(_p16._0)
+					_1: _user$project$Main$openWindow(_p18._0)
 				};
 			default:
-				var _p19 = A2(_user$project$Main$update_ui_state, _p16._0, model);
-				var ui_state = _p19._0;
-				var cmd = _p19._1;
+				var _p21 = A2(_user$project$Main$update_ui_state, _p18._0, model);
+				var ui_state = _p21._0;
+				var cmd = _p21._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -16717,6 +16674,115 @@ var _user$project$Main$update = F2(
 				};
 		}
 	});
+var _user$project$Main$viewServer = F2(
+	function (model, server_text) {
+		var lines = A2(_elm_lang$core$String$split, '\n', server_text);
+		var server = _user$project$Main$defaultEmpty(
+			_elm_lang$core$List$head(lines));
+		var info = A2(
+			_elm_lang$core$String$join,
+			'\n',
+			A2(
+				_elm_lang$core$Maybe$withDefault,
+				{ctor: '[]'},
+				_elm_lang$core$List$tail(lines)));
+		return A2(
+			_debois$elm_mdl$Material_Card$view,
+			{
+				ctor: '::',
+				_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '100%'),
+				_1: {
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Options$onClick(
+						_user$project$Main$UIMsg(
+							A2(_user$project$Main$StateMapToggle, server, 'toggled'))),
+					_1: {ctor: '[]'}
+				}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_debois$elm_mdl$Material_Card$title,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: A2(
+							_debois$elm_mdl$Material_Card$head,
+							{ctor: '[]'},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(server),
+								_1: {
+									ctor: '::',
+									_0: A5(
+										_debois$elm_mdl$Material_Button$render,
+										_user$project$Main$Mdl,
+										{
+											ctor: '::',
+											_0: 1,
+											_1: {ctor: '[]'}
+										},
+										model.mdl,
+										{
+											ctor: '::',
+											_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '30px'),
+											_1: {ctor: '[]'}
+										},
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html$text('Systemctl'),
+											_1: {ctor: '[]'}
+										}),
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_debois$elm_mdl$Material_Card$text,
+						{ctor: '[]'},
+						function () {
+							var _p22 = A2(_elm_lang$core$Dict$get, server, model.ui_state.state_map);
+							if (_p22.ctor === 'Just') {
+								return {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$pre,
+										{ctor: '[]'},
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html$text(info),
+											_1: {ctor: '[]'}
+										}),
+									_1: {ctor: '[]'}
+								};
+							} else {
+								return {ctor: '[]'};
+							}
+						}()),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_debois$elm_mdl$Material_Card$actions,
+							{
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Card$border,
+								_1: {ctor: '[]'}
+							},
+							{ctor: '[]'}),
+						_1: {ctor: '[]'}
+					}
+				}
+			});
+	});
+var _user$project$Main$viewServers = function (model) {
+	return A2(
+		_elm_lang$core$List$map,
+		_user$project$Main$viewServer(model),
+		model.server_state.cluster_info);
+};
 var _user$project$Main$viewClusterTab = function (model) {
 	var grafana_link = A2(_user$project$Main$take_lines, 1, model.server_state.grafana_url);
 	return A2(
@@ -16897,8 +16963,8 @@ var _user$project$Main$InstallCommand = function (a) {
 var _user$project$Main$stepView = F3(
 	function (model, k, step) {
 		var shade = function () {
-			var _p20 = step.status;
-			if (_p20.ctor === 'Completed') {
+			var _p23 = step.status;
+			if (_p23.ctor === 'Completed') {
 				return _debois$elm_mdl$Material_Color$S100;
 			} else {
 				return _debois$elm_mdl$Material_Color$S500;
@@ -17016,11 +17082,11 @@ var _user$project$Main$viewInstallTab = function (model) {
 								_elm_lang$html$Html$p,
 								{ctor: '[]'},
 								function () {
-									var _p21 = _user$project$Main$active_step(model);
-									if (_p21.ctor === 'Nothing') {
+									var _p24 = _user$project$Main$active_step(model);
+									if (_p24.ctor === 'Nothing') {
 										return {ctor: '[]'};
 									} else {
-										var _p22 = _p21._0;
+										var _p25 = _p24._0;
 										return {
 											ctor: '::',
 											_0: A2(
@@ -17037,7 +17103,7 @@ var _user$project$Main$viewInstallTab = function (model) {
 																_0: 'Step',
 																_1: {
 																	ctor: '::',
-																	_0: A2(_elm_lang$core$String$append, _p22.name, ': '),
+																	_0: A2(_elm_lang$core$String$append, _p25.name, ': '),
 																	_1: {ctor: '[]'}
 																}
 															})),
@@ -17045,7 +17111,7 @@ var _user$project$Main$viewInstallTab = function (model) {
 												}),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html$text(_p22.description),
+												_0: _elm_lang$html$Html$text(_p25.description),
 												_1: {ctor: '[]'}
 											}
 										};
@@ -17078,8 +17144,8 @@ var _user$project$Main$viewInstallTab = function (model) {
 											_1: {ctor: '[]'}
 										},
 										function () {
-											var _p23 = model.running_step;
-											if (_p23.ctor === 'Nothing') {
+											var _p26 = model.running_step;
+											if (_p26.ctor === 'Nothing') {
 												return {
 													ctor: '::',
 													_0: _debois$elm_mdl$Material_Progress$progress(0),
@@ -17257,8 +17323,8 @@ var _user$project$Main$view = function (model) {
 				main: {
 					ctor: '::',
 					_0: function () {
-						var _p24 = model.ui_state.selected_tab;
-						switch (_p24) {
+						var _p27 = model.ui_state.selected_tab;
+						switch (_p27) {
 							case 0:
 								return _user$project$Main$viewInstallTab(model);
 							case 1:
@@ -17281,11 +17347,11 @@ var _user$project$Main$NewServerState = function (a) {
 	return {ctor: 'NewServerState', _0: a};
 };
 var _user$project$Main$getServerStateOrFail = function (encoded) {
-	var _p25 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$decodeServerState, encoded);
-	if (_p25.ctor === 'Ok') {
-		return _user$project$Main$NewServerState(_p25._0);
+	var _p28 = A2(_elm_lang$core$Json_Decode$decodeString, _user$project$Main$decodeServerState, encoded);
+	if (_p28.ctor === 'Ok') {
+		return _user$project$Main$NewServerState(_p28._0);
 	} else {
-		return _user$project$Main$FailedDecode(_p25._0);
+		return _user$project$Main$FailedDecode(_p28._0);
 	}
 };
 var _user$project$Main$subscriptions = function (model) {
