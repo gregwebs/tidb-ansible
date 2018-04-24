@@ -27,9 +27,6 @@ setup:
 	kubectl --help 1>/dev/null || (echo "download kubectl" >&2 && exit 1)
 	echo "kubectl available"
 
-	jq --help 1>/dev/null || (echo "download jq https://stedolan.github.io/jq/download/" >&2 && exit 1)
-	echo "jq available"
-
 	docker run --rm hello-world 1>/dev/null || (echo "need to setup docker" >&2 && exit 1)
 	echo "docker available"
 
@@ -150,19 +147,21 @@ helm-install:
 	  helm --kube-context minikube install --namespace banzai banzaicloud-incubator/tidb
 	fi
 
+mysql_port_template='{{ range .spec.ports  }}{{if eq .name "mysql"}}{{.nodePort}}{{end}}{{end}}'
 mysql-connect:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	port="$(kubectl get svc ingress-nginx -o json | jq '.spec.ports[] | select(.name=="mysql") | .nodePort')"
+	port="$(kubectl get svc ingress-nginx --template '{{mysql_port_template}}')"
 	echo mysql --host "$(minikube ip)" --port "$port"
 
 
 sudo=''
 
+grafana_port_template='{{ range .spec.ports  }}{{if eq .name "http"}}{{.nodePort}}{{end}}{{end}}'
 grafana-url:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	port="$(kubectl get svc ingress-nginx -o json | jq '.spec.ports[] | select(.name=="http") | .nodePort')"
+	port="$(kubectl get svc ingress-nginx --template '{{grafana_port_template}}')"
 
 	etc_host="$(minikube ip) monitor.local"
 	if found=$(cat /etc/hosts | grep "$etc_host") ; then
@@ -189,6 +188,8 @@ kubectl-get +ARGS='':
 cluster-info:
 	#!/usr/bin/env bash
 	set -euo pipefail
+
+	jq --help 1>/dev/null || (echo "download jq https://stedolan.github.io/jq/download/" >&2 && exit 1)
 
 	sets=$(kubectl get statefulsets -o json | jq -c '.items[] | {name: .metadata.name, status, ports: .spec.template.spec.containers[] | .ports}')
 	for set in $sets ; do
